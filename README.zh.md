@@ -130,7 +130,7 @@ dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # 非默认 profile 
 }
 ```
 
-`mcpEnabled` 是白名单：空数组表示一个 MCP server 都不连。旧版（v1，只有 `disabled`）的状态文件可直接读取。
+`mcpEnabled` 是白名单：空数组表示一个 MCP server 都不连。旧版（v1，只有 `disabled`）的状态文件可直接读取；新文件还没生成时会回落到旧名 `$DSH_HOME/cursor-rules.json`，改名后开关不会丢。
 
 ## 使用
 

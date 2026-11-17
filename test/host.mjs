@@ -68,7 +68,8 @@ assert.equal(typeof plugin.apply, 'function');
 assert.notEqual(plugin.Config, undefined);
 
 /** 假 Cordis 上下文：记录注册项，供断言使用。 */
-const ctx = {
+function makeCtx() {
+	const ctx = {
 	logger: { warn() {}, info() {}, debug() {} },
 	events: new Map(),
 	effects: [],
@@ -107,7 +108,11 @@ const ctx = {
 		this.plugins.push({ module, config });
 		return { await: async () => {}, dispose: async () => {} };
 	},
-};
+	};
+	return ctx;
+}
+
+const ctx = makeCtx();
 
 plugin.apply(ctx, {
 	stateFile: join(root, 'state.json'),
@@ -123,7 +128,7 @@ assert.equal(ctx.tools.list[0].name, 'cursor_skill');
 assert.ok(ctx.events.has('agent/pre-step'));
 
 /** 调一次面板路由，返回状态码与响应体。 */
-const call = async (method, url, body) => {
+const callOn = async (target, method, url, body) => {
 	const chunk = body === undefined ? undefined : JSON.stringify(body);
 	const request = {
 		method,
@@ -142,9 +147,11 @@ const call = async (method, url, body) => {
 			payload = JSON.parse(text);
 		},
 	};
-	await ctx.routes[0].handler(request, response);
+	await target.routes[0].handler(request, response);
 	return { status, payload };
 };
+
+const call = (method, url, body) => callOn(ctx, method, url, body);
 
 const snapshot = await call('GET', '/cursor-toolkit/rules?sessionId=s1');
 assert.equal(snapshot.status, 200);
@@ -195,6 +202,25 @@ const second = await preStep(
 	async () => ({ kind: 'enter', messages: [...first.messages] }),
 );
 assert.equal(second.messages.length, first.messages.length, '内容未变化时不应重复注入');
+
+// ── 改名后的状态文件兼容：旧文件名 cursor-rules.json 仍要被读到 ──────────
+await mkdir(join(root, 'home'), { recursive: true });
+await writeFile(
+	join(root, 'home', 'cursor-rules.json'),
+	JSON.stringify({ version: 2, disabled: ['.cursor/rules/global.mdc'], skillsDisabled: ['skill:project:prd-skill'], mcpEnabled: [] }),
+);
+const legacyCtx = makeCtx();
+plugin.apply(legacyCtx, { stateFile: 'cursor-toolkit.json', userRuleDirs: [], userSkillDirs: [], userMcpFiles: [] });
+const migrated = await callOn(legacyCtx, 'GET', '/cursor-toolkit/rules?sessionId=s1');
+assert.equal(migrated.status, 200);
+assert.equal(
+	migrated.payload.rules.find((rule) => rule.id === '.cursor/rules/global.mdc').enabled,
+	false,
+	'旧 cursor-rules.json 里的关闭状态要继承下来',
+);
+assert.equal(migrated.payload.skills[0].enabled, false, '旧文件里的技能开关也要继承');
+assert.equal(migrated.payload.statePath, join(root, 'home', 'cursor-toolkit.json'));
+for (const entry of legacyCtx.effects) if (typeof entry.cleanup === 'function') await entry.cleanup();
 
 for (const entry of ctx.effects) if (typeof entry.cleanup === 'function') await entry.cleanup();
 await rm(root, { recursive: true, force: true });

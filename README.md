@@ -155,7 +155,8 @@ Switch state lives in `$DSH_HOME/cursor-toolkit.json` (v2):
 ```
 
 `mcpEnabled` is a whitelist: an empty array connects no MCP server at all. A v1 file (only `disabled`) is read
-without migration.
+without migration. If the file is missing, the old name `$DSH_HOME/cursor-rules.json` is read instead, so switches
+survive the rename from `dsh-cursor-rules`.
 
 ## Using the panel
 
