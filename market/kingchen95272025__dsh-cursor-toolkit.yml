@@ -1,0 +1,10 @@
+# Marketplace entry for https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
+# Copy this file to data/plugins/kingchen95272025__dsh-cursor-toolkit.yml in your fork
+# and open a pull request. Do not edit the repository's README by hand.
+url: https://github.com/kingchen95272025/dsh-cursor-toolkit
+name: kingchen95272025/dsh-cursor-toolkit
+category: agi
+description:
+  en: Loads the rules, skills, and MCP servers declared under .cursor into the agent context, with a panel that reads and switches each of them.
+  zh: 把 .cursor 下的规则、技能与 MCP server 接入 Agent 上下文，并提供查看与逐个开关它们的面板。
+icon: https://raw.githubusercontent.com/kingchen95272025/dsh-cursor-toolkit/main/assets/icon-180.png
