@@ -1,7 +1,7 @@
 # dsh-cursor-toolkit
 
 > 把 Cursor 在 `.cursor` 下的三类资产接入 DeepSeek Harness：**规则**（`.cursor/rules/**/*.mdc`）、
-> **技能**（`.cursor/skills/*/SKILL.md`）、**MCP**（`.cursor/mcp.json`），并在 Web GUI 提供「Cursor 资产」面板。
+> **技能**（`.cursor/skills/*/SKILL.md`）、**MCP**（`.cursor/mcp.json`），并在 Web GUI 提供「Cursor 工具包」面板。
 
 [English](README.md)
 
@@ -13,7 +13,7 @@
 - **规则语义完全对齐 Cursor**：`alwaysApply` / `globs` / `description` 三要素决定一条规则何时进入上下文，文件名不参与判断。
 - **技能按需加载**：`SKILL.md` 的 `name` + `description` 进一次目录，正文等 Agent 需要时再调 `cursor_skill` 工具取，不把几万字技能全塞进上下文。
 - **MCP 真接入**：`.cursor/mcp.json` 里声明的 server 会被解析成 DSH 的 MCP 客户端条目，**默认全部关闭**，打开开关才拉起进程。
-- **两处 UI**：左栏导航的「Cursor 规则」行（占满主面板的整页，含规则 / MCP / 技能三个页签）与设置面板里的同名分节。
+- **两处 UI**：左栏导航的「Cursor 工具包」行（占满主面板的整页，含规则 / MCP / 技能三个页签）与设置面板里的同名分节。
 - **零第三方依赖**：frontmatter 解析、JSONC 解析与 glob 匹配都在插件内自实现，bundle 自洽运行，无构建步骤。
 
 ## 规则语义（与 Cursor 一致）
@@ -77,7 +77,7 @@ Cursor 的 MCP 配置形如：
 
 ## 安装
 
-在 DSH 插件市场搜索「Cursor 规则」安装 bundle；或在命令行从仓库安装：
+在 DSH 插件市场搜索「Cursor 工具包」安装 bundle；或在命令行从仓库安装：
 
 ```sh
 dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # 非默认 profile 加 --profile <名称>
@@ -163,11 +163,11 @@ The following Cursor skills (.cursor/skills) are available. When a task matches 
 
 ### 2. 面板（浏览器半边）
 
-- **左栏导航 → Cursor 规则**：`sidebar.panellist` 的行（同一 id 寻址 `main` 座位的整页），顶部三个页签：**规则 / MCP / 技能**。
+- **左栏导航 → Cursor 工具包**：`sidebar.panellist` 的行（同一 id 寻址 `main` 座位的整页），顶部三个页签：**规则 / MCP / 技能**。
 - **规则页签**：类型标签、globs、描述与开关；点「查看」在该行下方就地展开完整正文（渲染 Markdown，再点「收起」收回）。
 - **MCP 页签**：传输方式、命令/URL 概要、`env`/`header` 键名、运行态状态标签与开关。
 - **技能页签**：`description`、路径、附属文件、体积与开关；「查看」同样就地展开 `SKILL.md` 正文。
-- **设置面板 → Cursor 规则**：规则列表以分节形式复用（与左栏整页同一份实现）。
+- **设置面板 → Cursor 工具包**：规则列表以分节形式复用（与左栏整页同一份实现）。
 - 关闭某条资产后，它不再进入注入集合（规则与技能）或不再被挂载（MCP）。
 
 ## 验证
