@@ -1,4 +1,4 @@
-# dsh-cursor-rules
+# dsh-cursor-toolkit
 
 > 把 Cursor 在 `.cursor` 下的三类资产接入 DeepSeek Harness：**规则**（`.cursor/rules/**/*.mdc`）、
 > **技能**（`.cursor/skills/*/SKILL.md`）、**MCP**（`.cursor/mcp.json`），并在 Web GUI 提供「Cursor 资产」面板。
@@ -80,10 +80,10 @@ Cursor 的 MCP 配置形如：
 在 DSH 插件市场搜索「Cursor 规则」安装 bundle；或在命令行从仓库安装：
 
 ```sh
-dsh plugin add github:kingchen95272025/dsh-cursor-rules   # 非默认 profile 加 --profile <名称>
+dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # 非默认 profile 加 --profile <名称>
 ```
 
-本包是标准 bundle：`package.json` 声明 `dsh.bundle.patch`，`cordis.patch.yml` 插入 `dsh-cursor-rules` 行；宿主半边是包主入口，`dsh.client` 声明让 Web 端加载 `./client` 作为浏览器半边。无构建、无安装脚本。
+本包是标准 bundle：`package.json` 声明 `dsh.bundle.patch`，`cordis.patch.yml` 插入 `dsh-cursor-toolkit` 行；宿主半边是包主入口，`dsh.client` 声明让 Web 端加载 `./client` 作为浏览器半边。无构建、无安装脚本。
 
 > 从旧版手工安装迁移：先删掉 profile `cordis.patch.yml` 里手写的 `cursor-rules` 行，以及 `<profileDir>/node_modules/` 下的旧拷贝，否则规则会被注册两次。
 
@@ -93,8 +93,8 @@ dsh plugin add github:kingchen95272025/dsh-cursor-rules   # 非默认 profile �
 
 ```yaml
 - insert:
-    - id: dsh-cursor-rules
-      name: dsh-cursor-rules
+    - id: dsh-cursor-toolkit
+      name: dsh-cursor-toolkit
       config:
         enabled: true            # 总开关；false 时宿主半边完全不注册
         includeUserRules: true   # 是否加载用户级目录（规则与技能共用）
@@ -105,8 +105,8 @@ dsh plugin add github:kingchen95272025/dsh-cursor-rules   # 非默认 profile �
         trackTouches: true       # 是否按「已触达文件」自动附加 globs 规则
         projectRootMarkers:      # 项目根标记
           - .git
-        httpPath: /cursor-rules  # 面板使用的 HTTP 前缀路由
-        stateFile: cursor-rules.json  # 开关状态文件名，落在 $DSH_HOME 下
+        httpPath: /cursor-toolkit  # 面板使用的 HTTP 前缀路由
+        stateFile: cursor-toolkit.json  # 开关状态文件名，落在 $DSH_HOME 下
         enableSkills: true       # 是否扫描 .cursor/skills
         userSkillDirs:           # 用户级技能目录
           - ~/.cursor/skills
@@ -119,7 +119,7 @@ dsh plugin add github:kingchen95272025/dsh-cursor-rules   # 非默认 profile �
 
 > `config` 在 DSH 的 patch 语义里是**整体替换**而非深合并：覆写这一行时必须把要保留的键一并写出。
 
-开关状态持久化在 `$DSH_HOME/cursor-rules.json`（v2）：
+开关状态持久化在 `$DSH_HOME/cursor-toolkit.json`（v2）：
 
 ```json
 {
@@ -184,9 +184,9 @@ npm run test:client # 只跑浏览器接线：slot 注册、三个页签、渲�
 宿主半边（对着运行中的 profile）：
 
 ```sh
-curl -s "http://127.0.0.1:<端口>/cursor-rules/rules?sessionId=<sessionId>" | head -c 400   # 规则
-curl -s "http://127.0.0.1:<端口>/cursor-rules/mcp?sessionId=<sessionId>" | head -c 400     # MCP
-curl -s "http://127.0.0.1:<端口>/cursor-rules/skill?id=skill:project:prd-skill" | head -c 400
+curl -s "http://127.0.0.1:<端口>/cursor-toolkit/rules?sessionId=<sessionId>" | head -c 400   # 规则
+curl -s "http://127.0.0.1:<端口>/cursor-toolkit/mcp?sessionId=<sessionId>" | head -c 400     # MCP
+curl -s "http://127.0.0.1:<端口>/cursor-toolkit/skill?id=skill:project:prd-skill" | head -c 400
 ```
 
 返回 JSON 即挂载成功，`version` 字段是插件代码版本——**用它判断当前进程跑的是哪一版代码**。2.0.0 上这些路由返回 `200`。
@@ -198,9 +198,9 @@ curl -s "http://127.0.0.1:<端口>/cursor-rules/skill?id=skill:project:prd-skill
 直接看这两处座位，或用平台暴露的实况槽位树（`cordis_inspect_query`，`provider: "Slots"`、`method: "listSubTree"`）核对：
 
 ```
-input={"root": "settings.section"}   # 期望 {"id":"cursor-rules","order":30,"active":true}
-input={"root": "sidebar.panellist"}   # 期望 {"id":"cursor-rules","order":30,"active":true}
-input={"root": "main"}                # 期望注册了 "cursor-rules" 这个 key
+input={"root": "settings.section"}   # 期望 {"id":"cursor-toolkit","order":30,"active":true}
+input={"root": "sidebar.panellist"}   # 期望 {"id":"cursor-toolkit","order":30,"active":true}
+input={"root": "main"}                # 期望注册了 "cursor-toolkit" 这个 key
 ```
 
 路由注册用 `ctx.inject(['webServer'], …)` 而不是一次性 `ctx.get('webServer')`：冷启动时 `apply` 可能早于
@@ -213,7 +213,7 @@ input={"root": "main"}                # 期望注册了 "cursor-rules" 这个 ke
 | `lib/rules.js` | 资产引擎（纯逻辑、零依赖）：frontmatter 解析、JSONC 解析、glob 编译与匹配、规则/技能/MCP 发现、四类规则选择、增量注入计划、技能目录计划 |
 | `lib/index.js` | 宿主半边（Cordis 插件）：`agent/pre-step` 合并注入、`cursor_skill` 工具、MCP 客户端的挂载/卸载与状态、`tools/result` 与 `fs/observed` 触达采集、`ctx.webServer` 上的面板 JSON 接口、开关状态持久化 |
 | `lib/client.js` | 浏览器半边（手写、无构建）：`window.__ModuleLoader__.load({ id, factory })`，注册 `sidebar.panellist` 行、配套的 `main` 整页（三页签）与 `settings.section` 分节 |
-| `cordis.patch.yml` | bundle patch：插入 `dsh-cursor-rules` 行 |
+| `cordis.patch.yml` | bundle patch：插入 `dsh-cursor-toolkit` 行 |
 | `locale/{en,zh}.json` | Plugin Manager 的标题、描述与详情文档 |
 | `test/smoke.mjs` | 自带 fixture 的可移植冒烟测试（70 项断言） |
 | `test/host.mjs` | 宿主接线测试：把平台包换成桩，再驱动 `apply()`，验证路由 / `cursor_skill` / 开关 / MCP 挂载 / 注入时序 |
@@ -234,7 +234,7 @@ cwd 变化 / 开关切到 MCP
    └─ scheduleMcp(cwd) 串行执行 → ctx.plugin(McpClient, config) 多退少补
 ```
 
-`source` 使用插件自有的 `kind: 'cursor-rules'`，并携带 `entries`（全量 id+指纹）、`catalogDigest`、`skillDigest`，因此：
+`source` 使用插件自有的 `kind: 'cursor-toolkit'`，并携带 `entries`（全量 id+指纹）、`catalogDigest`、`skillDigest`，因此：
 
 - **会话恢复**时可从历史消息重建「已投递状态」，不会重复注入；
 - **压缩（compaction）**后历史里不再有本插件消息时，会重新投递完整基线；

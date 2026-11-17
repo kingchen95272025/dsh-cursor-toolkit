@@ -1,4 +1,4 @@
-# dsh-cursor-rules
+# dsh-cursor-toolkit
 
 > Brings the three asset types Cursor keeps under `.cursor` into DeepSeek Harness: **rules**
 > (`.cursor/rules/**/*.mdc`), **skills** (`.cursor/skills/*/SKILL.md`), and **MCP servers**
@@ -99,11 +99,11 @@ From the DSH plugin market, search for **Cursor rules** and install the bundle.
 From this repository:
 
 ```sh
-dsh plugin add github:kingchen95272025/dsh-cursor-rules   # add --profile <name> for a non-default profile
+dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # add --profile <name> for a non-default profile
 ```
 
 The package is a bundle: `package.json` declares `dsh.bundle.patch`, and `cordis.patch.yml` inserts the
-`dsh-cursor-rules` row. The host half is the package main entry; the `dsh.client` declaration makes the
+`dsh-cursor-toolkit` row. The host half is the package main entry; the `dsh.client` declaration makes the
 web app load `./client` for the browser half. No build step, no install script.
 
 > Migrating from an older manual install? Remove the hand-written `cursor-rules` row from the profile's
@@ -116,8 +116,8 @@ The row's `config` (every key is optional):
 
 ```yaml
 - insert:
-    - id: dsh-cursor-rules
-      name: dsh-cursor-rules
+    - id: dsh-cursor-toolkit
+      name: dsh-cursor-toolkit
       config:
         enabled: true            # master switch; false registers nothing
         includeUserRules: true   # load user-level directories (rules and skills)
@@ -128,8 +128,8 @@ The row's `config` (every key is optional):
         trackTouches: true       # auto-attach glob rules on file touches
         projectRootMarkers:      # markers used to find the project root
           - .git
-        httpPath: /cursor-rules  # HTTP prefix used by the panel
-        stateFile: cursor-rules.json  # switch state file under $DSH_HOME
+        httpPath: /cursor-toolkit  # HTTP prefix used by the panel
+        stateFile: cursor-toolkit.json  # switch state file under $DSH_HOME
         enableSkills: true       # scan .cursor/skills
         userSkillDirs:           # user-level skill directories
           - ~/.cursor/skills
@@ -143,7 +143,7 @@ The row's `config` (every key is optional):
 > In DSH patch semantics `config` **replaces** the whole object instead of deep-merging: an override must
 > restate every key it wants to keep.
 
-Switch state lives in `$DSH_HOME/cursor-rules.json` (v2):
+Switch state lives in `$DSH_HOME/cursor-toolkit.json` (v2):
 
 ```json
 {
@@ -184,7 +184,7 @@ cwd change / MCP switch toggled
    └─ scheduleMcp(cwd) runs serially → ctx.plugin(McpClient, config), adding and removing instances
 ```
 
-Injected messages carry the plugin's own `kind: 'cursor-rules'` source plus `entries` (every id with its
+Injected messages carry the plugin's own `kind: 'cursor-toolkit'` source plus `entries` (every id with its
 fingerprint), a `catalogDigest`, and a `skillDigest`, so that:
 
 - **Resuming a session** rebuilds the delivered state from history and does not inject twice;
@@ -206,9 +206,9 @@ any machine.
 Host half, against a running profile:
 
 ```sh
-curl -s "http://127.0.0.1:<port>/cursor-rules/rules?sessionId=<sessionId>" | head -c 400   # rules
-curl -s "http://127.0.0.1:<port>/cursor-rules/mcp?sessionId=<sessionId>" | head -c 400     # MCP
-curl -s "http://127.0.0.1:<port>/cursor-rules/skill?id=skill:project:prd-skill" | head -c 400
+curl -s "http://127.0.0.1:<port>/cursor-toolkit/rules?sessionId=<sessionId>" | head -c 400   # rules
+curl -s "http://127.0.0.1:<port>/cursor-toolkit/mcp?sessionId=<sessionId>" | head -c 400     # MCP
+curl -s "http://127.0.0.1:<port>/cursor-toolkit/skill?id=skill:project:prd-skill" | head -c 400
 ```
 
 The `version` field in the response is the plugin code version — use it to tell which build the running
@@ -222,9 +222,9 @@ whether the browser half loaded. Check the slots in Settings → Plugin Manager,
 where the platform exposes one (`cordis_inspect_query` with `provider: "Slots"`, `method: "listSubTree"`):
 
 ```
-input={"root": "settings.section"}    # expect {"id":"cursor-rules","order":30,"active":true}
-input={"root": "sidebar.panellist"}    # expect {"id":"cursor-rules","order":30,"active":true}
-input={"root": "main"}                 # expect a "cursor-rules" key registered
+input={"root": "settings.section"}    # expect {"id":"cursor-toolkit","order":30,"active":true}
+input={"root": "sidebar.panellist"}    # expect {"id":"cursor-toolkit","order":30,"active":true}
+input={"root": "main"}                 # expect a "cursor-toolkit" key registered
 ```
 
 Registration uses `ctx.inject(['webServer'], …)` rather than a one-shot `ctx.get('webServer')`: on a cold
@@ -264,7 +264,7 @@ registration, which showed up as a 404 after a restart. Keep that form if you ch
 | `lib/rules.js` | Asset engine (pure logic, no dependencies): frontmatter parsing, JSONC parsing, glob compilation and matching, rule/skill/MCP discovery, four-type selection, incremental injection planning, skill catalog planning |
 | `lib/index.js` | Host half (Cordis plugin): merged `agent/pre-step` injection, the `cursor_skill` tool, MCP client mounting and status, `tools/result` and `fs/observed` touch collection, panel JSON routes on `ctx.webServer`, switch persistence |
 | `lib/client.js` | Browser half (hand-written, no build): `window.__ModuleLoader__.load({ id, factory })`, registering the `sidebar.panellist` row, the matching `main` page (three tabs), and the `settings.section` seat |
-| `cordis.patch.yml` | Bundle patch: inserts the `dsh-cursor-rules` row |
+| `cordis.patch.yml` | Bundle patch: inserts the `dsh-cursor-toolkit` row |
 | `locale/{en,zh}.json` | Plugin Manager title, description, and detail document |
 | `test/smoke.mjs` | Portable smoke test (70 assertions) over a self-built fixture |
 | `test/host.mjs` | Host wiring test: stubs the platform packages, then drives `apply()` — routes, `cursor_skill`, toggles, MCP mount, injection |

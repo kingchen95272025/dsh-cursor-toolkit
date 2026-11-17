@@ -21,7 +21,7 @@ import { pathToFileURL } from 'node:url';
 // ── 快照桩：三类资产各给两条，覆盖开/关、stdio/http、就绪/失败 ──────────────
 
 const snapshot = {
-	version: '2.0.1',
+	version: '2.0.2',
 	cwd: '/tmp/ws',
 	projectRoot: '/tmp/ws',
 	maxBytes: 131072,
@@ -321,7 +321,7 @@ globalThis.window = {
 
 await import(pathToFileURL(new URL('../lib/client.js', import.meta.url).pathname).href);
 assert.notEqual(loaded, undefined, '客户端包应以 window.__ModuleLoader__.load 注册自己');
-assert.equal(loaded.id, 'dsh-cursor-rules');
+assert.equal(loaded.id, 'dsh-cursor-toolkit');
 
 const requireStub = (specifier) => {
 	if (specifier === 'react') return react;
@@ -353,15 +353,15 @@ assert.deepEqual(
 	['main', 'settings.section', 'sidebar.panellist'],
 	'应注册设置分节、左栏导航行与主面板三处 slot',
 );
-assert.equal(registered.get('main').config.key, 'cursor-rules');
-assert.equal(registered.get('sidebar.panellist').config.id, 'cursor-rules');
-assert.equal(registered.get('settings.section').config.id, 'cursor-rules');
+assert.equal(registered.get('main').config.key, 'cursor-toolkit');
+assert.equal(registered.get('sidebar.panellist').config.id, 'cursor-toolkit');
+assert.equal(registered.get('settings.section').config.id, 'cursor-toolkit');
 assert.equal(registered.get('sidebar.panellist').config.order, 30);
 
 // ── 渲染整页：规则页签 → 点 MCP 页签 → 点技能页签 ────────────────────────
 
 const page = registered.get('main').component;
-const firstPass = await render(page, { t: ctx.locale.bind('cursor-rules') });
+const firstPass = await render(page, { t: ctx.locale.bind('cursor-toolkit') });
 assert.ok(firstPass.text.includes('agent-behavior.mdc'), '规则页签应列出规则文件');
 assert.ok(firstPass.text.includes('始终生效'), '规则页签应给出规则类型标签');
 assert.ok(firstPass.text.includes('/tmp/ws/state.json'), '页脚应显示状态文件位置');
@@ -372,14 +372,14 @@ const tabs = tabButtons(firstPass.elements);
 assert.equal(tabs.length, 3, '应有规则 / MCP / 技能三个页签');
 
 tabs[1].props.onClick();
-const mcpPass = await render(page, { t: ctx.locale.bind('cursor-rules') });
+const mcpPass = await render(page, { t: ctx.locale.bind('cursor-toolkit') });
 assert.ok(mcpPass.text.includes('cursor_mysql'), 'MCP 页签应显示归一化后的 server 名');
 assert.ok(mcpPass.text.includes('MYSQL_URL'), 'MCP 页签应显示 env 键名');
 assert.equal(mcpPass.text.includes('secret'), false);
 
 const skillTabs = tabButtons(mcpPass.elements);
 skillTabs[2].props.onClick();
-const skillPass = await render(page, { t: ctx.locale.bind('cursor-rules') });
+const skillPass = await render(page, { t: ctx.locale.bind('cursor-toolkit') });
 assert.ok(skillPass.text.includes('prd-skill'), '技能页签应列出技能名');
 assert.ok(skillPass.text.includes('写 PRD 时使用'), '技能页签应显示描述');
 const openButton = skillPass.elements.find(
@@ -387,14 +387,14 @@ const openButton = skillPass.elements.find(
 );
 assert.notEqual(openButton, undefined, '技能行应有「查看」按钮');
 openButton.props.onClick();
-const bodyPass = await render(page, { t: ctx.locale.bind('cursor-rules') });
+const bodyPass = await render(page, { t: ctx.locale.bind('cursor-toolkit') });
 assert.ok(bodyPass.text.includes('SKILL-BODY'), '技能正文应就地展开');
 
 // ── 设置分节与左栏图标也要能渲染 ─────────────────────────────────────────
 
 const section = registered.get('settings.section').component;
 const useSessionsStub = (selector) => selector({ byId: { s1: { cwd: '/tmp/ws' } }, current: 's1' }) ?? 's1';
-const sectionPass = await render(section, { t: ctx.locale.bind('cursor-rules'), useSessions: useSessionsStub });
+const sectionPass = await render(section, { t: ctx.locale.bind('cursor-toolkit'), useSessions: useSessionsStub });
 assert.ok(sectionPass.text.includes('agent-behavior.mdc'), '设置分节应复用同一个面板');
 
 const icon = registered.get('sidebar.panellist').component;
@@ -407,7 +407,7 @@ assert.ok(
 // ── 关掉开关会打到宿主接口 ───────────────────────────────────────────────
 
 assert.equal(toggles.length, 0, '渲染过程不应自行切换开关');
-const switched = await render(page, { t: ctx.locale.bind('cursor-rules') });
+const switched = await render(page, { t: ctx.locale.bind('cursor-toolkit') });
 const switches = switched.elements.filter((element) => typeof element.props.onChange === 'function' && 'checked' in element.props);
 assert.ok(switches.length > 0, '规则 / MCP / 技能行都应带开关');
 switches[0].props.onChange(!snapshot.mcp[0].enabled);

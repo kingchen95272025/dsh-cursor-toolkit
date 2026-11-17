@@ -146,9 +146,9 @@ const call = async (method, url, body) => {
 	return { status, payload };
 };
 
-const snapshot = await call('GET', '/cursor-rules/rules?sessionId=s1');
+const snapshot = await call('GET', '/cursor-toolkit/rules?sessionId=s1');
 assert.equal(snapshot.status, 200);
-assert.equal(snapshot.payload.version, '2.0.1');
+assert.equal(snapshot.payload.version, '2.0.2');
 assert.deepEqual(snapshot.payload.rules.map((rule) => rule.id).sort(), ['.cursor/rules/api.mdc', '.cursor/rules/global.mdc']);
 assert.equal(snapshot.payload.skills.length, 1);
 assert.equal(snapshot.payload.mcp.length, 1);
@@ -158,22 +158,22 @@ assert.deepEqual(snapshot.payload.mcp[0].envKeys, ['MYSQL_URL']);
 assert.equal(JSON.stringify(snapshot.payload.mcp[0]).includes('secret'), false, '凭据值不得出现在面板数据里');
 assert.deepEqual(snapshot.payload.features, { rules: true, skills: true, mcp: true });
 
-const skill = await call('GET', '/cursor-rules/skill?id=skill:project:prd-skill&sessionId=s1');
+const skill = await call('GET', '/cursor-toolkit/skill?id=skill:project:prd-skill&sessionId=s1');
 assert.equal(skill.status, 200);
 assert.equal(skill.payload.skill.body.trim(), 'PRD-BODY');
 
-const off = await call('POST', '/cursor-rules/toggle', { kind: 'skill', id: 'skill:project:prd-skill', enabled: false, sessionId: 's1' });
+const off = await call('POST', '/cursor-toolkit/toggle', { kind: 'skill', id: 'skill:project:prd-skill', enabled: false, sessionId: 's1' });
 assert.equal(off.payload.skills[0].enabled, false);
 assert.deepEqual(JSON.parse(await readFile(join(root, 'state.json'), 'utf8')).skillsDisabled, ['skill:project:prd-skill']);
 
-const on = await call('POST', '/cursor-rules/toggle', { kind: 'mcp', id: 'mcp:project:mysql', enabled: true, sessionId: 's1' });
+const on = await call('POST', '/cursor-toolkit/toggle', { kind: 'mcp', id: 'mcp:project:mysql', enabled: true, sessionId: 's1' });
 assert.equal(on.payload.mcp[0].enabled, true);
 assert.equal(on.payload.mcp[0].status, 'ready');
 assert.equal(ctx.plugins.length, 1, '打开开关后才挂载 mcp-client');
 assert.equal(ctx.plugins[0].config.serverName, 'cursor_mysql');
 assert.equal(ctx.plugins[0].config.transport, 'stdio');
 
-await call('POST', '/cursor-rules/toggle', { kind: 'skill', id: 'skill:project:prd-skill', enabled: true, sessionId: 's1' });
+await call('POST', '/cursor-toolkit/toggle', { kind: 'skill', id: 'skill:project:prd-skill', enabled: true, sessionId: 's1' });
 
 const preStep = ctx.events.get('agent/pre-step');
 const history = [{ role: 'user', content: 'hi' }];
@@ -183,7 +183,7 @@ const first = await preStep(
 );
 const injected = first.messages.at(-1);
 assert.equal(injected.role, 'user');
-assert.equal(injected.source.kind, 'cursor-rules');
+assert.equal(injected.source.kind, 'cursor-toolkit');
 const text = injected.content[0].text;
 assert.ok(text.includes('GLOBAL-BODY'), '基线应包含 alwaysApply 规则正文');
 assert.ok(text.includes('cursor_skill'), '应包含技能目录与按需加载提示');

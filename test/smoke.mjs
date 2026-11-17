@@ -102,7 +102,7 @@ for (const [glob, file, expected] of cases) {
 }
 
 // ——— 自建临时工作区：四种规则类型各就各位 ———
-const workspace = await mkdtemp(join(tmpdir(), 'dsh-cursor-rules-ws-'));
+const workspace = await mkdtemp(join(tmpdir(), 'dsh-cursor-toolkit-ws-'));
 const rulesDir = join(workspace, '.cursor/rules');
 await mkdir(join(workspace, '.git'), { recursive: true });
 await mkdir(join(rulesDir, 'nested'), { recursive: true });
@@ -243,7 +243,7 @@ check('默认用户级目录为 [~/.dsh/rules, ~/.cursor/rules]', () => {
 
 const home = await mkdtemp(join(tmpdir(), 'dsh-user-rules-'));
 const dshDir = join(home, 'dsh-rules');
-const cursorDir = join(home, 'cursor-rules');
+const cursorDir = join(home, 'cursor-toolkit');
 await mkdir(dshDir, { recursive: true });
 await mkdir(cursorDir, { recursive: true });
 await writeFile(join(dshDir, 'global.mdc'), '---\ndescription: DSH 全局位\nalwaysApply: true\n---\nDSH-BODY\n');

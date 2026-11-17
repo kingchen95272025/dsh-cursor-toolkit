@@ -1,6 +1,6 @@
 {
-	"name": "dsh-cursor-rules",
-	"version": "2.0.1",
+	"name": "dsh-cursor-toolkit",
+	"version": "2.0.2",
 	"description": "Brings Cursor rules, skills and MCP servers (.cursor) into DeepSeek Harness: injects .mdc rules and a skill catalog into the agent context, exposes a cursor_skill tool, and connects .cursor/mcp.json servers on demand.",
 	"type": "module",
 	"main": "lib/index.js",
@@ -78,10 +78,10 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/kingchen95272025/dsh-cursor-rules.git"
+		"url": "git+https://github.com/kingchen95272025/dsh-cursor-toolkit.git"
 	},
-	"homepage": "https://github.com/kingchen95272025/dsh-cursor-rules#readme",
+	"homepage": "https://github.com/kingchen95272025/dsh-cursor-toolkit#readme",
 	"bugs": {
-		"url": "https://github.com/kingchen95272025/dsh-cursor-rules/issues"
+		"url": "https://github.com/kingchen95272025/dsh-cursor-toolkit/issues"
 	}
 }

@@ -1,7 +1,7 @@
 {
-  "meta": {
-    "title": "Cursor 资产",
-    "description": "把工作区与用户目录下 .cursor 的三类资产接入 Agent：规则（.cursor/rules/*.mdc，按 Cursor 的四类语义注入上下文，alwaysApply 会话开始即注入、带 globs 的在读写到匹配文件后追加、只写 description 的进按需目录）、技能（.cursor/skills/*/SKILL.md，name + description 进上下文目录，正文由 cursor_skill 工具按需读取）、MCP（.cursor/mcp.json，允许 JSONC，解析后按开关真接入为 MCP 客户端，默认全部关闭，只有你打开开关才会拉起子进程）。所有内容都从本地磁盘读取，注入的部分会作为会话发给模型；MCP 的 env / header 只显示键名，值仅用于启动子进程。面板在左栏导航「Cursor 规则」整页（规则 / MCP / 技能三个页签）与设置面板的同名分节中。关闭该 bundle 后注入、面板与已挂载的 MCP 连接一并停止。",
-    "detail": "README.zh.md"
-  }
+	"meta": {
+		"title": "Cursor 工具包",
+		"description": "把工作区与用户目录下 .cursor 的三类资产接入 Agent：规则（.cursor/rules/*.mdc，按 Cursor 的四类语义注入上下文，alwaysApply 会话开始即注入、带 globs 的在读写到匹配文件后追加、只写 description 的进按需目录）、技能（.cursor/skills/*/SKILL.md，name + description 进上下文目录，正文由 cursor_skill 工具按需读取）、MCP（.cursor/mcp.json，允许 JSONC，解析后按开关真接入为 MCP 客户端，默认全部关闭，只有你打开开关才会拉起子进程）。所有内容都从本地磁盘读取，注入的部分会作为会话发给模型；MCP 的 env / header 只显示键名，值仅用于启动子进程。面板在左栏导航「Cursor 规则」整页（规则 / MCP / 技能三个页签）与设置面板的同名分节中。关闭该 bundle 后注入、面板与已挂载的 MCP 连接一并停止。",
+		"detail": "README.zh.md"
+	}
 }
