@@ -1,7 +1,7 @@
 {
 	"name": "dsh-cursor-toolkit",
-	"version": "2.0.3",
-	"description": "Brings Cursor rules, skills and MCP servers (.cursor) into DeepSeek Harness: injects .mdc rules and a skill catalog into the agent context, exposes a cursor_skill tool, and connects .cursor/mcp.json servers on demand.",
+	"version": "2.1.0",
+	"description": "Brings Cursor rules, skills and MCP servers (.cursor) into DeepSeek Harness: ships the Cursor agent preset, injects .mdc rules and a skill catalog into the agent context, exposes a cursor_skill tool, and connects .cursor/mcp.json servers on demand.",
 	"type": "module",
 	"main": "lib/index.js",
 	"exports": {
@@ -17,6 +17,7 @@
 		"lib/rules.js",
 		"lib/client.js",
 		"cordis.patch.yml",
+		"presets/*.patch.yml",
 		"locale/*.json",
 		"icon.svg",
 		"assets/icon-180.png",
@@ -25,7 +26,10 @@
 	],
 	"dsh": {
 		"bundle": {
-			"patch": "./cordis.patch.yml"
+			"patch": [
+				"./cordis.patch.yml",
+				"./presets/cursor.patch.yml"
+			]
 		},
 		"client": {
 			"platform": "web"
@@ -56,10 +60,11 @@
 		}
 	},
 	"scripts": {
-		"test": "node test/smoke.mjs && node test/host.mjs && node test/client.mjs",
+		"test": "node test/smoke.mjs && node test/host.mjs && node test/preset.mjs && node test/client.mjs",
 		"test:host": "node test/host.mjs",
 		"test:rules": "node test/smoke.mjs",
-		"test:client": "node test/client.mjs"
+		"test:client": "node test/client.mjs",
+		"test:preset": "node test/preset.mjs"
 	},
 	"keywords": [
 		"dsh",

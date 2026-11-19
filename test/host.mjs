@@ -15,7 +15,7 @@ import { strict as assert } from 'node:assert';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { register } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const STUBS = {
@@ -112,6 +112,16 @@ function makeCtx() {
 	return ctx;
 }
 
+/** 轮询等待一个异步条件成立（apply() 里的清理是 fire-and-forget）。 */
+async function waitFor(predicate, timeoutMs = 2000) {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		if (await predicate()) return true;
+		await new Promise((done) => setTimeout(done, 20));
+	}
+	return false;
+}
+
 const ctx = makeCtx();
 
 plugin.apply(ctx, {
@@ -155,7 +165,7 @@ const call = (method, url, body) => callOn(ctx, method, url, body);
 
 const snapshot = await call('GET', '/cursor-toolkit/rules?sessionId=s1');
 assert.equal(snapshot.status, 200);
-assert.equal(snapshot.payload.version, '2.0.3');
+assert.equal(snapshot.payload.version, '2.1.0');
 assert.deepEqual(snapshot.payload.rules.map((rule) => rule.id).sort(), ['.cursor/rules/api.mdc', '.cursor/rules/global.mdc']);
 assert.equal(snapshot.payload.skills.length, 1);
 assert.equal(snapshot.payload.mcp.length, 1);
@@ -222,7 +232,61 @@ assert.equal(migrated.payload.skills[0].enabled, false, '旧文件里的技能�
 assert.equal(migrated.payload.statePath, join(root, 'home', 'cursor-toolkit.json'));
 for (const entry of legacyCtx.effects) if (typeof entry.cleanup === 'function') await entry.cleanup();
 
+// ── 旧 dsh-cursor-mode 受管块：摘掉 + 备份 + 幂等 ──────────────────────────
+const legacyPatch = join(root, 'profile', 'cordis.patch.yml');
+await mkdir(dirname(legacyPatch), { recursive: true });
+await writeFile(
+	legacyPatch,
+	[
+		'# profile patch',
+		'- insert:',
+		'    - id: keep-me',
+		'      name: keep-me',
+		'',
+		'# >>> dsh-cursor-mode (managed block) >>>',
+		'- insert:',
+		'    - id: preset-cursor',
+		"      name: '@deepseek-ai/dsh-agent-preset'",
+		'# <<< dsh-cursor-mode <<<',
+		'',
+		'# tail comment',
+		'',
+	].join('\n'),
+);
+const migratedOnce = await plugin.migrateLegacyPreset(legacyPatch);
+assert.equal(migratedOnce.migrated, true, '带标记的受管块应被移除');
+const cleanedPatch = await readFile(legacyPatch, 'utf8');
+assert.ok(cleanedPatch.includes('id: keep-me'), '受管块之外的配置行要原样保留');
+assert.ok(cleanedPatch.includes('# tail comment'), '块后面的注释也要保留');
+assert.ok(!cleanedPatch.includes('preset-cursor'), '旧预设行必须消失');
+assert.ok(cleanedPatch.includes('# profile patch'));
+assert.ok((await readFile(migratedOnce.backupPath, 'utf8')).includes('preset-cursor'), '备份里应留着移除前的内容');
+const migratedAgain = await plugin.migrateLegacyPreset(legacyPatch);
+assert.equal(migratedAgain.migrated, false, '第二次调用应当无事可做');
+assert.equal(migratedAgain.reason, 'absent');
+
+// 没有标记、只剩手写的 preset-cursor 行：只报信号，不动文件（YAML 结构不明）
+const barePatch = join(root, 'profile', 'bare.patch.yml');
+await writeFile(barePatch, '- insert:\n    - id: preset-cursor\n      name: x\n');
+const bareResult = await plugin.migrateLegacyPreset(barePatch);
+assert.equal(bareResult.migrated, false);
+assert.equal(bareResult.reason, 'unmarked-row');
+assert.ok((await readFile(barePatch, 'utf8')).includes('preset-cursor'), '手写行不能被自动删除');
+
+// 走一遍 apply()：profileContext 指向带受管块的补丁时，启动即自动清理
+const migratePatch = join(root, 'profile', 'auto.patch.yml');
+await writeFile(
+	migratePatch,
+	['# >>> dsh-cursor-mode (managed block) >>>', '- insert:', '    - id: preset-cursor', '# <<< dsh-cursor-mode <<<', ''].join('\n'),
+);
+const autoCtx = makeCtx();
+autoCtx.profileContext = { patchPath: migratePatch };
+plugin.apply(autoCtx, { stateFile: join(root, 'state-auto.json'), userRuleDirs: [], userSkillDirs: [], userMcpFiles: [] });
+assert.ok(await waitFor(async () => !(await readFile(migratePatch, 'utf8')).includes('preset-cursor')), 'apply() 应自动清掉旧受管块');
+for (const entry of autoCtx.effects) if (typeof entry.cleanup === 'function') await entry.cleanup();
+
+
 for (const entry of ctx.effects) if (typeof entry.cleanup === 'function') await entry.cleanup();
 await rm(root, { recursive: true, force: true });
 
-console.log('宿主半边接线通过：路由 / cursor_skill 工具 / 开关落盘 / MCP 挂载 / 注入与去重。');
+console.log('宿主半边接线通过：路由 / cursor_skill 工具 / 开关落盘 / MCP 挂载 / 注入与去重 / 旧受管块迁移。');

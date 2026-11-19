@@ -21,7 +21,7 @@ import { pathToFileURL } from 'node:url';
 // ── 快照桩：三类资产各给两条，覆盖开/关、stdio/http、就绪/失败 ──────────────
 
 const snapshot = {
-	version: '2.0.3',
+	version: '2.1.0',
 	cwd: '/tmp/ws',
 	projectRoot: '/tmp/ws',
 	maxBytes: 131072,

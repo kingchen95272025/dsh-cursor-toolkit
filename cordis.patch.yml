@@ -1,6 +1,10 @@
 # Bundle patch layer: the row loads the package's main entry as the host half
 # (a plain Cordis plugin); the `dsh.client` declaration makes the web app load
 # its ./client bundle as the browser half.
+#
+# The companion patch `presets/cursor.patch.yml` (declared second in
+# `dsh.bundle.patch`) inserts the Cursor agent preset, so installing this bundle
+# is enough to get "Cursor 模式" in the new-session picker.
 - insert:
     - id: dsh-cursor-toolkit
       name: dsh-cursor-toolkit

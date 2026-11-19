@@ -10,6 +10,7 @@
 
 ## What it does
 
+- **Ships the Cursor agent preset.** The bundle declares the `cursor` preset itself, so installing it puts **Cursor 模式** in the new-session picker — no separate `dsh-cursor-mode` install. Apart from the persona, its tool plane is line-for-line the built-in standard mode.
 - **Same rule semantics as Cursor.** A rule's frontmatter decides when it enters the context, not the file name.
 - **Nothing to maintain twice.** Repositories (and `~/.cursor`) that already carry rules, skills, and MCP
   configuration work as-is; you do not paste them into prompts or declare the servers again.
@@ -102,13 +103,22 @@ From this repository:
 dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # add --profile <name> for a non-default profile
 ```
 
-The package is a bundle: `package.json` declares `dsh.bundle.patch`, and `cordis.patch.yml` inserts the
-`dsh-cursor-toolkit` row. The host half is the package main entry; the `dsh.client` declaration makes the
-web app load `./client` for the browser half. No build step, no install script.
+The package is a bundle whose `dsh.bundle.patch` lists two patch files, applied in that order:
+
+- `cordis.patch.yml` inserts the `dsh-cursor-toolkit` row. The host half is the package main entry; the `dsh.client`
+  declaration makes the web app load `./client` for the browser half.
+- `presets/cursor.patch.yml` inserts the **Cursor 模式** agent preset (next section).
+
+Bundle patches are read from the package directory on every start and never copied into the profile, so **restart
+DSH once after installing or upgrading**. No build step, no install script.
 
 > Migrating from an older manual install? Remove the hand-written `cursor-rules` row from the profile's
 > `cordis.patch.yml` and the copied directory under `<profileDir>/node_modules/` first, otherwise the
 > rules are registered twice.
+>
+> Coming from the standalone `dsh-cursor-mode` bundle? Nothing to clean by hand: on start this plugin removes that
+> `# >>> dsh-cursor-mode` managed block from the profile patch, after backing it up as
+> `cordis.patch.yml.bak-dsh-cursor-mode`. When the block is already gone it does nothing (idempotent).
 
 ## Configuration
 
@@ -134,6 +144,7 @@ The row's `config` (every key is optional):
         userSkillDirs:           # user-level skill directories
           - ~/.cursor/skills
         skillCatalogBytes: 8192  # byte budget for the skill catalog
+        migrateLegacyPreset: true   # strip the old dsh-cursor-mode managed block on start (idempotent, backed up)
         enableMcp: true          # parse .cursor/mcp.json and allow mounting servers
         userMcpFiles:            # user-level MCP configuration
           - ~/.cursor/mcp.json
@@ -157,6 +168,31 @@ Switch state lives in `$DSH_HOME/cursor-toolkit.json` (v2):
 `mcpEnabled` is a whitelist: an empty array connects no MCP server at all. A v1 file (only `disabled`) is read
 without migration. If the file is missing, the old name `$DSH_HOME/cursor-rules.json` is read instead, so switches
 survive the rename from `dsh-cursor-rules`.
+
+## The built-in Cursor 模式
+
+A DSH session "mode" is just an agent preset: one `@deepseek-ai/dsh-agent-preset` row whose `config.plugins` lists the
+plugins that mode mounts and the persona it runs. This bundle ships exactly that in
+`presets/cursor.patch.yml`, so the mode appears in the new-session picker as soon as the plugin is installed.
+
+- **The preset id stays `cursor`**, the same one the standalone mode used, so session records and settings that
+  reference it keep working.
+- **The tool plane is the standard mode.** Except for the `persona` row, all 32 plugin rows match the built-in
+  standard mode of 0.2.2-rc.5 in order and configuration, and `test/preset.mjs` guards that. To add a tool, override
+  this row by id in the profile patch instead of editing the package.
+- **The persona does one job**: it states how `.cursor/rules/**/*.mdc` gets loaded — rules already in context are
+  obeyed verbatim; a rule marked "available on demand" must be `read` before editing that area and re-read when the
+  task moves; project rules and direct user instructions win. Discovering and delivering the rules themselves is the
+  host half's job, independent of which mode is selected.
+- **The row id is `preset-cursor-toolkit`**, deliberately not the old `preset-cursor`: the loader throws
+  `entry ... already exists in the target tree` for two inserts sharing an id, so a different id is what lets a machine
+  that still carries the old managed block boot at all. That block is removed after start by
+  `config.migrateLegacyPreset`.
+
+The baseline is `dsh-web-app/presets/standard.patch.yml` from 0.2.2-rc.5. When upstream changes the standard mode, this
+preset does **not** follow automatically: pull a fresh `standard.patch.yml` out of the asar, diff it structurally, and
+change only the persona plus metadata (`id`/`name`/`description`/`order`) — and update the package list inside
+`test/preset.mjs`.
 
 ## Using the panel
 
@@ -234,6 +270,10 @@ registration, which showed up as a 404 after a restart. Keep that form if you ch
 
 ## Known trade-offs
 
+- **The preset follows upstream by hand.** The Cursor 模式 row list is a copy of the 0.2.2-rc.5 standard mode, not a
+  runtime inheritance: zero drift and a clean diff, but upstream additions never arrive by themselves, so each DSH
+  upgrade needs one manual pass. On an older DSH that lacks some of those packages the preset shows up as broken in
+  the log while rule injection keeps working.
 - **Touch sources** are the `file_path` of `read` / `write` / `edit` plus the `displayPath` of `fs/observed`.
   Side effects of arbitrary shell commands are not parsed — the same trade-off `dsh-agent-instructions` makes.
 - **Auto Attached follows what has been touched, not what is about to be edited.** Cursor also considers files
@@ -266,9 +306,11 @@ registration, which showed up as a 404 after a restart. Keep that form if you ch
 | `lib/index.js` | Host half (Cordis plugin): merged `agent/pre-step` injection, the `cursor_skill` tool, MCP client mounting and status, `tools/result` and `fs/observed` touch collection, panel JSON routes on `ctx.webServer`, switch persistence |
 | `lib/client.js` | Browser half (hand-written, no build): `window.__ModuleLoader__.load({ id, factory })`, registering the `sidebar.panellist` row, the matching `main` page (three tabs), and the `settings.section` seat |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-cursor-toolkit` row |
+| `presets/cursor.patch.yml` | Bundle patch: inserts the `preset-cursor-toolkit` row — the Cursor 模式 agent preset (Cursor persona plus the standard mode's tool plane) |
 | `locale/{en,zh}.json` | Plugin Manager title, description, and detail document |
 | `test/smoke.mjs` | Portable smoke test (70 assertions) over a self-built fixture |
-| `test/host.mjs` | Host wiring test: stubs the platform packages, then drives `apply()` — routes, `cursor_skill`, toggles, MCP mount, injection |
+| `test/host.mjs` | Host wiring test: stubs the platform packages, then drives `apply()` — routes, `cursor_skill`, toggles, MCP mount, injection, legacy-block migration |
+| `test/preset.mjs` | Preset shape check: unique row ids, every package on the rc.5 list, no retired settings, `PLUGIN_VERSION` matching package.json |
 | `test/client.mjs` | Client wiring test: a tiny React stand-in renders the real component tree — slots, tabs, expand, switches, dictionary/CSS consistency |
 
 ## Credits

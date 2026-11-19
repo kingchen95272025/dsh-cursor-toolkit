@@ -10,6 +10,7 @@
 ## 结论先行
 
 - **一句话**：装上本插件后，DSH 会读你在 Cursor 里已经写好的规则、技能与 MCP 配置，不必重复维护两份。
+- **自带「Cursor 模式」**：bundle 自己声明 `cursor` 预设，装好即可在「新建会话 → 模式」里选到，不必再单独装 `dsh-cursor-mode`；除人设外工具面与内置「标准模式」逐行一致。
 - **规则语义完全对齐 Cursor**：`alwaysApply` / `globs` / `description` 三要素决定一条规则何时进入上下文，文件名不参与判断。
 - **技能按需加载**：`SKILL.md` 的 `name` + `description` 进一次目录，正文等 Agent 需要时再调 `cursor_skill` 工具取，不把几万字技能全塞进上下文。
 - **MCP 真接入**：`.cursor/mcp.json` 里声明的 server 会被解析成 DSH 的 MCP 客户端条目，**默认全部关闭**，打开开关才拉起进程。
@@ -83,9 +84,15 @@ Cursor 的 MCP 配置形如：
 dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # 非默认 profile 加 --profile <名称>
 ```
 
-本包是标准 bundle：`package.json` 声明 `dsh.bundle.patch`，`cordis.patch.yml` 插入 `dsh-cursor-toolkit` 行；宿主半边是包主入口，`dsh.client` 声明让 Web 端加载 `./client` 作为浏览器半边。无构建、无安装脚本。
+本包是标准 bundle：`package.json` 的 `dsh.bundle.patch` 声明两个 patch 文件，按声明顺序生效——
+
+- `cordis.patch.yml` 插入 `dsh-cursor-toolkit` 行：宿主半边是包主入口，`dsh.client` 声明让 Web 端加载 `./client` 作为浏览器半边；
+- `presets/cursor.patch.yml` 插入「Cursor 模式」预设行（见下一节）。
+
+bundle patch 在每次启动时从包目录读取，不会被复制进 profile，因此**装完或升级后要重启一次 DSH** 才会生效。无构建、无安装脚本。
 
 > 从旧版手工安装迁移：先删掉 profile `cordis.patch.yml` 里手写的 `cursor-rules` 行，以及 `<profileDir>/node_modules/` 下的旧拷贝，否则规则会被注册两次。
+> 装过独立版 `dsh-cursor-mode`？不必手动清：本插件启动时会把那段 `# >>> dsh-cursor-mode` 受管块从 profile 补丁里摘掉，先备份成 `cordis.patch.yml.bak-dsh-cursor-mode`；块已不在时什么都不做（幂等）。
 
 ## 配置
 
@@ -111,6 +118,7 @@ dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # 非默认 profile 
         userSkillDirs:           # 用户级技能目录
           - ~/.cursor/skills
         skillCatalogBytes: 8192  # 技能目录的字节预算
+        migrateLegacyPreset: true   # 启动时摘掉旧 dsh-cursor-mode 受管块（幂等，先备份）
         enableMcp: true          # 是否解析并允许挂载 .cursor/mcp.json 里的 server
         userMcpFiles:            # 用户级 MCP 配置
           - ~/.cursor/mcp.json
@@ -131,6 +139,17 @@ dsh plugin add github:kingchen95272025/dsh-cursor-toolkit   # 非默认 profile 
 ```
 
 `mcpEnabled` 是白名单：空数组表示一个 MCP server 都不连。旧版（v1，只有 `disabled`）的状态文件可直接读取；新文件还没生成时会回落到旧名 `$DSH_HOME/cursor-rules.json`，改名后开关不会丢。
+
+## 内置「Cursor 模式」
+
+「模式」在 DSH 里就是一份 agent preset：一行 `@deepseek-ai/dsh-agent-preset`，`config.plugins` 写清这个模式挂哪些插件、用什么人设。本 bundle 的 `presets/cursor.patch.yml` 就是这样一个预设，装完插件即可在新会话的模式选择器里选到，不需要别的安装动作。
+
+- **预设 id 仍是 `cursor`**：会话记录与设置里引用的是它，和旧的独立模式一致，历史会话不受影响。
+- **工具面 = 标准模式**：除 `persona` 一行外，32 行插件的顺序与配置和内置于 0.2.2-rc.5 的「标准模式」逐字相同（`test/preset.mjs` 会在 CI 里盯住这一点）。想加工具就在 profile 补丁里按行 id 覆写，不用改本包。
+- **人设只负责一件事**：讲清 `.cursor/rules/**/*.mdc` 的加载纪律——已进上下文的规则逐字遵守；标着「available on demand」的规则动手前先 `read`，换区域重新读；项目规则与用户指令优先。规则本体的发现与投递由宿主半边完成，与选哪个模式无关。
+- **预设行 id 是 `preset-cursor-toolkit`**，故意不等于旧的 `preset-cursor`：Loader 遇到两条同 id 的 insert 会抛 `entry ... already exists in the target tree`，换 id 才能在旧受管块仍残留的机器上照常启动；那段旧块由 `config.migrateLegacyPreset` 在启动后清掉。
+
+基线是 0.2.2-rc.5 的 `dsh-web-app/presets/standard.patch.yml`。上游升级后若标准模式增删了插件行，本预设**不会自动跟随**——从 asar 里重新取一份 `standard.patch.yml` 做结构化 diff，只改 persona 与元数据（`id`/`name`/`description`/`order`）即可，同时更新 `test/preset.mjs` 里的包名清单。
 
 ## 使用
 
@@ -214,9 +233,11 @@ input={"root": "main"}                # 期望注册了 "cursor-toolkit" 这个 
 | `lib/index.js` | 宿主半边（Cordis 插件）：`agent/pre-step` 合并注入、`cursor_skill` 工具、MCP 客户端的挂载/卸载与状态、`tools/result` 与 `fs/observed` 触达采集、`ctx.webServer` 上的面板 JSON 接口、开关状态持久化 |
 | `lib/client.js` | 浏览器半边（手写、无构建）：`window.__ModuleLoader__.load({ id, factory })`，注册 `sidebar.panellist` 行、配套的 `main` 整页（三页签）与 `settings.section` 分节 |
 | `cordis.patch.yml` | bundle patch：插入 `dsh-cursor-toolkit` 行 |
+| `presets/cursor.patch.yml` | bundle patch：插入 `preset-cursor-toolkit` 行，即「Cursor 模式」预设（Cursor 人设 + 与标准模式一致的工具面） |
 | `locale/{en,zh}.json` | Plugin Manager 的标题、描述与详情文档 |
 | `test/smoke.mjs` | 自带 fixture 的可移植冒烟测试（70 项断言） |
-| `test/host.mjs` | 宿主接线测试：把平台包换成桩，再驱动 `apply()`，验证路由 / `cursor_skill` / 开关 / MCP 挂载 / 注入时序 |
+| `test/host.mjs` | 宿主接线测试：把平台包换成桩，再驱动 `apply()`，验证路由 / `cursor_skill` / 开关 / MCP 挂载 / 注入时序 / 旧受管块迁移 |
+| `test/preset.mjs` | 预设形状校验：行 id 唯一、包名都在 rc.5 清单内、旧版失效写法不再出现、`PLUGIN_VERSION` 与 package.json 一致 |
 | `test/client.mjs` | 浏览器接线测试：用极小 React 替身真渲染组件树，验证 slot 注册 / 三页签 / 展开 / 开关回调与词条、样式类一致性 |
 
 ### 宿主侧注入时序
@@ -242,6 +263,7 @@ cwd 变化 / 开关切到 MCP
 
 ## 已知取舍
 
+- **预设跟随上游是手工同步**：「Cursor 模式」的行清单是 0.2.2-rc.5 标准模式的拷贝而非运行时继承——好处是零漂移、可 diff，坏处是上游增删插件不会自动渗透，每次升级 DSH 后需要人工对一次。更早的 DSH 若缺少其中某些工具包，预设会以 broken 状态出现在日志里，规则注入本体不受影响。
 - **触达来源**是 `read`/`write`/`edit` 的 `file_path` 与 `fs/observed` 的 `displayPath`，不解析任意 shell 命令的副作用——和 `dsh-agent-instructions` 的取舍一致。
 - **Auto Attached 依赖「已触达」而非「将要修改」**：Cursor 也会参考你在对话里 @ 的文件，本插件只用文件系统触达信号，因此附加时机略保守（下一步而非同一步）。
 - **技能正文不预载**：只投 name + description。技能正文头部若有强制约束，Agent 必须先调 `cursor_skill` 才能看到——这是为了让长技能不常驻上下文而做的交换。
