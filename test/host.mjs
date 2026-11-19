@@ -165,7 +165,7 @@ const call = (method, url, body) => callOn(ctx, method, url, body);
 
 const snapshot = await call('GET', '/cursor-toolkit/rules?sessionId=s1');
 assert.equal(snapshot.status, 200);
-assert.equal(snapshot.payload.version, '2.1.0');
+assert.equal(snapshot.payload.version, '2.2.0');
 assert.deepEqual(snapshot.payload.rules.map((rule) => rule.id).sort(), ['.cursor/rules/api.mdc', '.cursor/rules/global.mdc']);
 assert.equal(snapshot.payload.skills.length, 1);
 assert.equal(snapshot.payload.mcp.length, 1);

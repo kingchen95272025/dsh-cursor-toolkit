@@ -1,6 +1,6 @@
 {
 	"name": "dsh-cursor-toolkit",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"description": "Brings Cursor rules, skills and MCP servers (.cursor) into DeepSeek Harness: ships the Cursor agent preset, injects .mdc rules and a skill catalog into the agent context, exposes a cursor_skill tool, and connects .cursor/mcp.json servers on demand.",
 	"type": "module",
 	"main": "lib/index.js",
